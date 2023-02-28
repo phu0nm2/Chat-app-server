@@ -19,6 +19,7 @@
     "helmet": "^6.0.1",
     "mongoose": "^6.10.0",
     "morgan": "^1.10.0",
+    "otp-generator": "^4.0.1",
     "xss": "^1.0.14"
   }
 }
