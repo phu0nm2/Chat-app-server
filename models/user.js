@@ -30,6 +30,9 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
   },
+  passwordConfirm: {
+    type: String,
+  },
   passwordChangedAt: {
     type: Date,
   },
@@ -58,7 +61,8 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-// this is a middleware
+// start middleware //
+// encrypted OTP
 userSchema.pre("save", async function (next) {
   // Only run this function if otp is actually modified
 
@@ -66,6 +70,18 @@ userSchema.pre("save", async function (next) {
 
   // hash the otp with the cost of 12
   this.otp = await bcrypt.hash(this.otp, 12);
+
+  next();
+});
+
+// encrypted password
+userSchema.pre("save", async function (next) {
+  // Only run this function if otp is actually modified
+
+  if (!this.isModified("password")) return next();
+
+  // hash the password with the cost of 12
+  this.password = await bcrypt.hash(this.password, 12);
 
   next();
 });
@@ -82,6 +98,24 @@ userSchema.methods.correctPassword = async function (
 userSchema.methods.correctOTP = async function (canditateOTP, userOTP) {
   return await bcrypt.compare(canditateOTP, userOTP);
 };
+// end middleware //
 
+// crypto is no longer supported. It's now a built-in Node module
+// can change to crypto-js
+userSchema.methods.createPasswordResetToken = function () {
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  this.passwordResetToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  return resetToken;
+};
+
+// at this_user (auth) call this methods to handle
+userSchema.methods.changePasswordAfter = function (timestamp) {
+  return timestamp < this.passwordChangedAt;
+};
 const User = new mongoose.model("User", userSchema);
 module.exports = User;
