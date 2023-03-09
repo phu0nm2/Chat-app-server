@@ -54,7 +54,7 @@ const userSchema = new mongoose.Schema({
   },
   otp: {
     // after hash the otp
-    type: Number, // result: asdf1423gzxc 123456789asd
+    type: String, // result: asdf1423gzxc 123456789asd
   },
   otp_expiry_time: {
     type: Date,
