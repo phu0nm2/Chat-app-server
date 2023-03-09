@@ -1,6 +1,11 @@
 // express is web framwork for Node.js
 const express = require("express");
 
+const routes = require("./routes/index");
+
+const authRouter = require("./routes/auth");
+const userRouter = require("./routes/user");
+
 // HTTP request logger middleware for node.js
 const morgan = require("morgan");
 
@@ -47,5 +52,7 @@ const limiter = rateLimit({
 });
 
 app.use("/talk", limiter);
+
+app.use(routes);
 
 module.exports = app;

@@ -23,9 +23,7 @@ const DB = process.env.DBURL.replace("<PASSWORD>", process.env.DBPASSWORD);
 mongoose
   .connect(DB, {
     useNewUrlParser: true,
-    useCreateIndex: true,
-    useFindAndModify: false,
-    useUnifiedToplogy: true,
+    useUnifiedTopology: true,
   })
   .then((con) => {
     console.log("DB connection is successful");

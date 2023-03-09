@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const otpGenerator = require("otp-generator");
 const crypto = require("crypto");
 //
+const mailService = require("../services/mailer");
 const User = require("../models/user");
 const filterObj = require("../utils/filterObj");
 const { promisify } = require("util");
@@ -18,8 +19,8 @@ exports.register = async (req, res, next) => {
     req.body,
     "firstName",
     "lastName",
-    "password",
     "email",
+    "password",
   );
 
   // check if a verified user with given email exists
@@ -27,7 +28,7 @@ exports.register = async (req, res, next) => {
 
   // using and verified
   if (existing_user && existing_user.verified) {
-    res.status(400).json({
+    return res.status(400).json({
       status: "error",
       message: "Email is already in use, please login.!",
     });
@@ -62,12 +63,37 @@ exports.sendOTP = async (req, res, next) => {
 
   const otp_expiry_time = Date.now() + 10 * 6 * 1000; // 10 mints after otp is sent
 
-  await User.findOneAndUpdate(userId, {
-    otp: new_otp,
+  const user = await User.findOneAndUpdate(userId, {
     otp_expiry_time,
   });
 
-  // send mail
+  user.otp = new_otp.toString();
+
+  await user.save({ new: true, validateModifiedOnly: true });
+
+  console.log(new_otp);
+
+  // todo send mail
+  mailService.sendSGMail({
+    from: "teppppp2@gmail.com",
+    to: user.email,
+    subject: "OTP for Talk app",
+    html: otp(user.firstName, new_otp),
+    attachments: [],
+  });
+  // .then(() => {
+  //   res.status(200).json({
+  //     status: "success",
+  //     message: "OTP sent successfully",
+  //   });
+  // })
+  // .catch(() => {
+  //   res.status(400).json({
+  //     status: "error",
+  //     message: "server is not response",
+  //   });
+  // });
+
   res.status(200).json({
     status: "success",
     message: "OTP sent successfully",
