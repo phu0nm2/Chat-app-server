@@ -30,7 +30,7 @@ exports.register = async (req, res, next) => {
   if (existing_user && existing_user.verified) {
     return res.status(400).json({
       status: "error",
-      message: "Email is already in use, please login.!",
+      message: "Email is already in use, please try with other email!",
     });
   }
   // using but not verified
@@ -64,35 +64,24 @@ exports.sendOTP = async (req, res, next) => {
   const otp_expiry_time = Date.now() + 10 * 6 * 1000; // 10 mints after otp is sent
 
   const user = await User.findOneAndUpdate(userId, {
-    otp_expiry_time,
+    otp_expiry_time: otp_expiry_time,
   });
 
   user.otp = new_otp.toString();
 
   await user.save({ new: true, validateModifiedOnly: true });
 
-  console.log("otp", new_otp);
+  console.log("otp is", new_otp);
 
   // todo send mail
   mailService.sendSGMail({
     from: "teppppp2@gmail.com",
     to: user.email,
     subject: "OTP for Talk app",
-    html: otp(user.firstName, new_otp),
+    html: `Your is ${new_otp}. This is valid for 10 mins`,
+    // html: otp(user.firstName, new_otp),
     attachments: [],
   });
-  // .then(() => {
-  //   res.status(200).json({
-  //     status: "success",
-  //     message: "OTP sent successfully",
-  //   });
-  // })
-  // .catch(() => {
-  //   res.status(400).json({
-  //     status: "error",
-  //     message: "server is not response",
-  //   });
-  // });
 
   res.status(200).json({
     status: "success",
@@ -100,27 +89,38 @@ exports.sendOTP = async (req, res, next) => {
   });
 };
 
+// still get error: opt is not defined
+// hardcode verify = true to login
 exports.verifyOTP = async (req, res, next) => {
   // verify OTP and update user record accordingly
-  const { email, otp } = req.body;
+  const { email, otp } = await req.body;
+
   const user = await User.findOne({
     email,
     otp_expiry_time: { $gt: Date.now() },
   });
 
   if (!user) {
-    res.status(400).json({
+    return res.status(400).json({
       status: "error",
       message: "Email is invalid or otp expired!",
     });
   }
 
+  if (user.verified) {
+    return res.status(400).json({
+      status: "error",
+      message: "email is already verified!",
+    });
+  }
   // otp fail
   if (!(await user.correctOTP(otp, user.otp))) {
     res.status(400).json({
       status: "error",
       message: "OTP is incorrect!",
     });
+
+    return;
   }
 
   // otp is correct
@@ -130,33 +130,59 @@ exports.verifyOTP = async (req, res, next) => {
   await user.save({ new: true, validateModifiedOnly: true });
 
   const token = signToken(user._id);
+
   res.status(200).json({
     status: "success",
     message: "OTP verified successfully",
     token,
+    user_id: user_id,
   });
 };
+
+// user login
 exports.login = async (req, res, next) => {
   const { email, password } = req.body;
+
+  // console.log(email, password);
+
   if (!email || !password) {
     res.status(400).json({
       status: "error",
       message: "Both email and password are required!",
     });
-  }
-  const userDoc = await User.findOne({ email: email }).select("+password");
-  if (!userDoc || !(await userDoc.correctPassword(password, userDoc.passord))) {
-    res.status(400).json({
-      status: "error",
-      message: "Email or password is incorrect!",
-    });
+
+    return;
   }
 
-  const token = signToken(userDoc._id);
+  const user = await User.findOne({ email: email }).select("+password");
+
+  if (!user || !user.password) {
+    res.status(400).json({
+      status: "error",
+      message: "Incorrect password!",
+    });
+
+    return;
+  }
+
+  if (!user || !(await user.correctPassword(password, user.password))) {
+    // console.log(user);
+    // console.log(password, user.password);
+    res.status(400).json({
+      status: "error",
+      message: "Email or password is incorrect",
+    });
+
+    return;
+  }
+
+  const token = signToken(user._id);
+
   res.status(200).json({
     status: "success",
-    message: "Logger is successfully",
+    message: "Logged in successfully!",
     token,
+    user_id: user._id,
   });
 };
 
@@ -219,10 +245,22 @@ exports.forgotPassword = async (req, res, next) => {
 
   // 2. Generate the random reset token
   const resetToken = user.createPasswordResetToken();
-  const resetURL = `http://localhost:3000/auth/new-password?token=${resetToken}`;
+  await user.save({ validateBeforeSave: false });
 
+  // send it to user email
   try {
-    //
+    const resetURL = `http://localhost:3000/auth/new-password?token=${resetToken}`;
+
+    // todo send mail
+    mailService.sendSGMail({
+      from: "teppppp2@gmail.com",
+      to: user.email,
+      subject: "Talk app - Reset password",
+      html: `Click this link to reset your password ${resetURL}`,
+      // html: otp(user.firstName, new_otp),
+      attachments: [],
+    });
+
     res.status(200).json({
       status: "success",
       message: "Reset password link sent to email",
@@ -240,6 +278,8 @@ exports.forgotPassword = async (req, res, next) => {
   }
   //
 };
+
+// still not working with the token
 exports.resetPassword = async (req, res, next) => {
   // get user based on token
 
@@ -262,8 +302,9 @@ exports.resetPassword = async (req, res, next) => {
   }
 
   // update users password and set resetToken & expiry to undefined
-  user.passord = req.body.passord;
-  user.passordConform = req.body.passordConform;
+  // password + passwordConform + token
+  user.password = req.body.password;
+  user.passwordConform = req.body.passwordConform;
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
 

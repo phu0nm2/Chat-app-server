@@ -1,23 +1,17 @@
 const sgMail = require("@sendgrid/mail");
+require("dotenv").config();
+// const dotenv = require("dotenv");
 
-const dotenv = require("dotenv");
-dotenv.config({ path: "../config.env" });
+// dotenv.config({ path: "../config.env" });
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+sgMail.setApiKey(process.env.SG_KEY);
 
-const sendSGMail = async ({
-  recipient,
-  sender,
-  subject,
-  html,
-  text,
-  attachments,
-}) => {
+const sendSGMail = async ({ to, subject, html, text, attachments }) => {
   try {
-    const from = sender || "teppppp2@gmail.com";
+    const from = "teppppp2@gmail.com";
 
     const msg = {
-      to: recipient,
+      to: to,
       from: from, // Use the email address or domain you verified above
       subject,
       html: html,
@@ -35,7 +29,7 @@ exports.sendSGMail = async (args) => {
   // if in this case 'development' mode, when we try to send any mail
   // just get a promise
   // but the email actual email is not going to be sent mail
-  if (procees.env.NODE_ENV === "development") {
+  if (process.env.NODE_ENV === "development") {
     return new Promise.resolve();
   } else {
     return sendSGMail(args);

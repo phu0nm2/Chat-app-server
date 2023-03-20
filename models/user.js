@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 
 const userSchema = new mongoose.Schema({
   firstName: {
@@ -50,7 +51,7 @@ const userSchema = new mongoose.Schema({
   },
   verified: {
     type: Boolean,
-    default: false,
+    default: true,
   },
   otp: {
     // after hash the otp
@@ -66,19 +67,21 @@ const userSchema = new mongoose.Schema({
 userSchema.pre("save", async function (next) {
   // Only run this function if otp is actually modified
 
-  if (!this.isModified("otp")) return next();
+  if (!this.isModified("otp") || !this.otp) return next();
 
   // hash the otp with the cost of 12
-  this.otp = await bcrypt.hash(this.otp, 12);
+  this.otp = await bcrypt.hash(this.otp.toString(), 12);
+
+  console.log(this.otp.toString(), "FROM PRE SAVE HOOK");
 
   next();
 });
 
 // encrypted password
 userSchema.pre("save", async function (next) {
-  // Only run this function if otp is actually modified
+  // Only run this function if password is actually modified
 
-  if (!this.isModified("password")) return next();
+  if (!this.isModified("password") || !this.password) return next();
 
   // hash the password with the cost of 12
   this.password = await bcrypt.hash(this.password, 12);
@@ -86,18 +89,27 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
+// userSchema.pre("save", function (next) {
+//   if (!this.isModified("password") || this.isNew || !this.password)
+//     return next();
+
+//   this.passwordChangedAt = Date.now() - 1000;
+//   next();
+// });
+
 // hash a password
 userSchema.methods.correctPassword = async function (
-  canditatePassword,
+  candidatePassword,
   userPassword,
 ) {
-  return await bcrypt.compare(canditatePassword, userPassword);
+  return await bcrypt.compare(candidatePassword, userPassword);
 };
 
 //
-userSchema.methods.correctOTP = async function (canditateOTP, userOTP) {
-  return await bcrypt.compare(canditateOTP, userOTP);
+userSchema.methods.correctOTP = async function (candidateOTP, userOTP) {
+  return await bcrypt.compare(candidateOTP, userOTP);
 };
+
 // end middleware //
 
 // crypto is no longer supported. It's now a built-in Node module
