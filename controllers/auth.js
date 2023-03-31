@@ -228,7 +228,7 @@ exports.protect = async (req, res, next) => {
     });
   }
 
-  //
+  // grant access to protected route(cấp quyền truy cập vào route)
   req.user = this_user;
   next();
 };
