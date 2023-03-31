@@ -85,11 +85,12 @@ exports.sendOTP = async (req, res, next) => {
 
   res.status(200).json({
     status: "success",
-    message: "OTP sent successfully",
+    message: "OTP sent successfully, login now!",
   });
 };
 
 // still get error: opt is not defined
+// sent mail from sendgrid to our email need around 24hours so can't verify otp in 10mins
 // hardcode verify = true to login
 exports.verifyOTP = async (req, res, next) => {
   // verify OTP and update user record accordingly
@@ -159,7 +160,8 @@ exports.login = async (req, res, next) => {
   if (!user || !user.password) {
     res.status(400).json({
       status: "error",
-      message: "Incorrect password!",
+      message:
+        "Your email is not already register or Incorrect password. Please register now!",
     });
 
     return;
@@ -257,7 +259,7 @@ exports.forgotPassword = async (req, res, next) => {
       to: user.email,
       subject: "Talk app - Reset password",
       html: `Click this link to reset your password ${resetURL}`,
-      // html: otp(user.firstName, new_otp),
+
       attachments: [],
     });
 
