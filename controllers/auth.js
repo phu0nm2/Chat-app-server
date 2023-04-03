@@ -191,17 +191,19 @@ exports.login = async (req, res, next) => {
 exports.protect = async (req, res, next) => {
   // Getting token (JWT) and check if it's there
 
-  let token;
+  let token = req.cookies.jwt;
 
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer")
   ) {
     token = req.headers.authorization.split(" ")[1];
-  } else if (req.cookies.jwt) {
-    token = req.cookies.jwt;
-  } else {
-    req.status(400).json({
+  } else if (token) {
+    token;
+  }
+
+  if (!token) {
+    return res.status(401).json({
       status: "error",
       message: "You are not logged In! Please log in to get access!",
     });
@@ -214,7 +216,7 @@ exports.protect = async (req, res, next) => {
   const this_user = await User.findById(decoded.userId);
 
   if (!this_user) {
-    res.status(400).json({
+    return res.status(401).json({
       status: "error",
       message: "The user doesn't exist!",
     });
@@ -222,7 +224,7 @@ exports.protect = async (req, res, next) => {
 
   // check if user changed their password after token was issued
   if (this_user.changePasswordAfter(decoded.iat)) {
-    res.status(400).json({
+    return res.status(401).json({
       status: "error",
       message: "User recently updated password! Please log in again!",
     });
@@ -273,7 +275,7 @@ exports.forgotPassword = async (req, res, next) => {
 
     await user.save({ validateBeforeSave: false });
 
-    res.status(500).json({
+    return res.status(500).json({
       status: "error",
       message: "There was an error sending the email, please try again later",
     });
