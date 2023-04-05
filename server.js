@@ -3,6 +3,8 @@ const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 dotenv.config({ path: "./config.env" });
 
+const path = require("path");
+
 process.on("uncaughtException", (err) => {
   console.log(err);
   process.exit(1);
@@ -55,7 +57,7 @@ io.on("connection", async (socket) => {
 
   // when valid user, fetch that user's document and update this socket ID
   if (Boolean(user_id)) {
-    await User.findByIdAndUpdate(user_id, { socket_id });
+    await User.findByIdAndUpdate(user_id, { socket_id, status: "Online" });
   }
 
   // in a listener
@@ -107,9 +109,54 @@ io.on("connection", async (socket) => {
     io.to(receiver.socket_id).emit("request_accepted", {
       message: "Friend request accepted!",
     });
+
+    // handle text/link message
+    socket.on("text_message", (data) => {
+      console.log("Received Message", data);
+
+      // data:{to, from, text}
+
+      // create a new conversation if it doesn't exist yet or add new mess to the mess list
+
+      // save to db
+
+      // emit incoming_mess -> to user
+
+      // emit outgoing_mess -> from user
+    });
+
+    socket.on("file_message", (data) => {
+      console.log("Received Message", data);
+
+      // data:{to, from, text, file}
+
+      // get the file
+      const fileExtension = path.extname(data.file.name);
+
+      // generate a unique filename
+      const fileName = `${Date.now()}_${Math.floor(
+        Math.random() * 10000,
+      )}${fileExtension}`;
+
+      // update file to AWS s3
+
+      // create a new conversation if it doesn't exist yet or add new mess to the mess list
+
+      // save to db
+
+      // emit incoming_mess -> to user
+
+      // emit outgoing_mess -> from user
+    });
   });
 
-  socket.on("end", function () {
+  socket.on("end", async (data) => {
+    // find user_id and set the status is offline if user disconnected
+    if (data.user_id) {
+      await User.findByIdAndUpdate(data.user_id, { status: "Offline" });
+    }
+
+    //
     console.log("Closing connection");
     socket.disconnect(); // 0
   });
