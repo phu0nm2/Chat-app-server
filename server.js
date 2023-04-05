@@ -20,6 +20,7 @@ const User = require("./models/user");
 
 const { Server } = require("socket.io");
 const FriendRequest = require("./models/friendRequest");
+const OneToOneMess = require("./models/OneToOneMess");
 
 const server = http.createServer(app);
 
@@ -110,6 +111,16 @@ io.on("connection", async (socket) => {
       message: "Friend request accepted!",
     });
 
+    // create some user
+    socket.on("get_direct_conversation", async ({ user_id }, callback) => {
+      const existing_conversation = await OneToOneMess.find({
+        participants: { $all: [user_id] },
+      }).populate("participants", "firstName lastName _id email status");
+
+      console.log(existing_conversation);
+
+      callback(existing_conversation);
+    });
     // handle text/link message
     socket.on("text_message", (data) => {
       console.log("Received Message", data);

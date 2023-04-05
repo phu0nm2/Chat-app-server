@@ -10,7 +10,13 @@ router.get("/get-users", authController.protect, userController.getUsers);
 router.get("/get-friends", authController.protect, userController.getFriends);
 
 router.get(
-  "get-friend-request",
+  "/get-friends-requests",
+  authController.protect,
+  userController.getFriends,
+);
+
+router.get(
+  "get-friends-request",
   authController.protect,
   userController.getFriendRequest,
 );

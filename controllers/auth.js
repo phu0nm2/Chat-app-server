@@ -204,31 +204,37 @@ exports.protect = async (req, res, next) => {
 
   if (!token) {
     return res.status(401).json({
-      status: "error",
-      message: "You are not logged In! Please log in to get access!",
+      message: "You are not logged in! Please log in to get access.",
     });
   }
 
   // verification of token, decoded from JWT framework
-  const decoded = await promisify(jwt.verify)(token.process.env.JWT_SECRET);
+  const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+  // const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
 
+  console.log(decoded);
   // check if user still exist
   const this_user = await User.findById(decoded.userId);
 
   if (!this_user) {
     return res.status(401).json({
-      status: "error",
-      message: "The user doesn't exist!",
+      message: "The user belonging to this token does no longer exists.",
     });
   }
 
   // check if user changed their password after token was issued
-  if (this_user.changePasswordAfter(decoded.iat)) {
-    return res.status(401).json({
-      status: "error",
-      message: "User recently updated password! Please log in again!",
-    });
-  }
+  // if (this_user.changePasswordAfter(decoded.iat)) {
+  //   return res.status(401).json({
+  //     status: "error",
+  //     message: "User recently updated password! Please log in again!",
+  //   });
+  // }
+
+  // if (this_user.changedPasswordAfter(decoded.iat)) {
+  //   return res.status(401).json({
+  //     message: "User recently changed password! Please log in again.",
+  //   });
+  // }
 
   // grant access to protected route(cấp quyền truy cập vào route)
   req.user = this_user;
