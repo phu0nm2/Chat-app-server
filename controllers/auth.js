@@ -191,15 +191,15 @@ exports.login = async (req, res, next) => {
 exports.protect = async (req, res, next) => {
   // Getting token (JWT) and check if it's there
 
-  let token = req.cookies.jwt;
+  let token;
 
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer")
   ) {
     token = req.headers.authorization.split(" ")[1];
-  } else if (token) {
-    token;
+  } else if (req.cookies.jwt) {
+    req.cookies.jwt;
   }
 
   if (!token) {
